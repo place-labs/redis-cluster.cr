@@ -73,7 +73,7 @@ class Redis::Cluster::ClusterInfo
     found
   end
 
-  def each_serving_masters_with_slaves
+  def each_serving_masters_with_slaves(&)
     deps = slave_deps
     serving_masters.each do |master|
       slaves = deps.fetch(master) { [] of NodeInfo }
@@ -81,7 +81,7 @@ class Redis::Cluster::ClusterInfo
     end
   end
 
-  def each_nodes
+  def each_nodes(&)
     shown = Set(NodeInfo).new
 
     # first, process serving masters

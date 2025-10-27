@@ -4,7 +4,7 @@ struct Redis::Cluster::NodeInfo
     # 56f1954c1fa7b63fb631a872480dbf0a93bc8a9a 127.0.0.1:7004 slave 2afb4da9d68942a32676ca19e77492c4ba921d0f 0 1466089461937 1 connected
     ary = line.split
     argc = 0
-    shift = ->{
+    shift = -> {
       if ary[0]?
         argc += 1
         ary.shift

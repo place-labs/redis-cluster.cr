@@ -5,10 +5,12 @@
 # b) (standard) `Redis` lacks the feature, so it just raises errors without retry
 # c) Hybrid commands in `Redis::Client` has own `retry` feature
 
+require "openssl"
+
 class ::Redis::Client
   @redis : ::Redis | ::Redis::Cluster::Client | Nil
 
-  delegate host, port, unixsocket, password, to: @bootstrap
+  delegate host, port, unixsocket, password, ssl?, ssl_context?, to: @bootstrap
   getter bootstrap
 
   def self.boot(bootstrap : String)
@@ -19,8 +21,8 @@ class ::Redis::Client
   end
 
   # compats with `::Redis.new`
-  def initialize(host : String? = nil, port : Int32? = nil, unixsocket : String? = nil, password : String? = nil)
-    initialize(::Redis::Cluster::Bootstrap.new(host: host, port: port, sock: unixsocket, pass: password))
+  def initialize(host : String? = nil, port : Int32? = nil, unixsocket : String? = nil, password : String? = nil, ssl : Bool = false, ssl_context : OpenSSL::SSL::Context::Client? = nil)
+    initialize(::Redis::Cluster::Bootstrap.new(host: host, port: port, sock: unixsocket, pass: password, ssl: ssl, ssl_context: ssl_context))
   end
 
   def redis

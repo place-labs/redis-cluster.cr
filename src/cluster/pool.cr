@@ -2,7 +2,7 @@ module Redis::Cluster::Pool
   include Enumerable(Redis) # for all redis connections
 
   def new_redis(host : String, port : Int32)
-    Redis.new(host: host, port: port, password: password)
+    Redis.new(host: host, port: port, password: password, ssl: ssl?, ssl_context: ssl_context?)
   end
 
   def redis(key : String) : Redis
@@ -13,7 +13,7 @@ module Redis::Cluster::Pool
     redis(node.addr)
   end
 
-  def each
+  def each(&)
     cluster_info.nodes.each do |n|
       yield redis(n)
     end

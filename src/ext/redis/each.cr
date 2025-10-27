@@ -17,7 +17,7 @@ class Redis
     # redis.each(count: 1000) { |key| p key }
     # ```
 
-    def each(match = "*", count = 1000)
+    def each(match = "*", count = 1000, &)
       each_keys(match: match, count: count) do |keys|
         keys.each do |key|
           yield key
@@ -40,7 +40,7 @@ class Redis
     # redis.each_keys(count: 1000) { |keys| p keys }
     # ```
 
-    def each_keys(match = "*", count = 1000)
+    def each_keys(match = "*", count = 1000, &)
       idx = 0
       loop do
         idx, keys = scan(idx, match, count)

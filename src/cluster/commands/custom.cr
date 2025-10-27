@@ -3,7 +3,7 @@ module Redis::Cluster::Commands
   ######################################################################
 
   def keys(pattern)
-    array = [] of String
+    array = [] of Redis::RedisValue
     nodes.each do |n|
       array += redis(n.addr).keys(pattern)
     end
