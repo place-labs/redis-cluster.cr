@@ -1,3 +1,5 @@
+require "openssl"
+
 module Redis::Cluster
   # current api
   def self.new(bootstrap : Bootstrap) : Client
@@ -5,14 +7,14 @@ module Redis::Cluster
   end
 
   # [backward compats]
-  def self.new(bootstrap : String, password : String? = nil) : Client
-    bootstraps = bootstrap.split(",").map{|b| Bootstrap.parse(b.strip).copy(pass: password)}
+  def self.new(bootstrap : String, password : String? = nil, ssl : Bool = false, ssl_context : OpenSSL::SSL::Context::Client? = nil) : Client
+    bootstraps = bootstrap.split(",").map { |b| Bootstrap.parse(b.strip).copy(pass: password, ssl: ssl, ssl_context: ssl_context) }
     Client.new(bootstraps)
   end
 
   # Return a Cluster Connection or Standard Connection
-  def self.connect(host : String, port : Int32, password : String? = nil) : Connection
-    redis = ::Redis.new(host, port, password: password)
+  def self.connect(host : String, port : Int32, password : String? = nil, ssl : Bool = false, ssl_context : OpenSSL::SSL::Context::Client? = nil) : Redis | Client
+    redis = ::Redis.new(host, port, password: password, ssl: ssl, ssl_context: ssl_context)
 
     begin
       redis.command(["cluster", "myid"])
@@ -25,6 +27,6 @@ module Redis::Cluster
       end
     end
 
-    return ::Redis::Cluster.new("#{host}:#{port}", password: password)
+    ::Redis::Cluster.new("#{host}:#{port}", password: password, ssl: ssl, ssl_context: ssl_context)
   end
 end

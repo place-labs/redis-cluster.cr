@@ -3,14 +3,15 @@ class Redis::Cluster::ClusterInfo
     ClusterInfo.new(NodeInfo.array_parse(nodes_str, strict))
   end
 
-  class NodeNotFound < Exception ; end
-  class NodeNotUniq  < Exception ; end
-    
+  class NodeNotFound < Exception; end
+
+  class NodeNotUniq < Exception; end
+
   property nodes, slot2addr, slave_deps
-  
+
   @slot2addr : Hash(Int32, Addr)
   @slave_deps : Hash(NodeInfo, Array(NodeInfo))
-  
+
   def initialize(@nodes : Array(NodeInfo))
     @slot2addr = build_slot2addr
     @slave_deps = build_slave_deps
@@ -33,34 +34,33 @@ class Redis::Cluster::ClusterInfo
     each_serving_masters_with_slaves do |m, slaves|
       return slaves if m == master
     end
-    return Array(NodeInfo).new
+    Array(NodeInfo).new
   end
 
   def serving_masters : Array(NodeInfo)
-    nodes.select(&.serving?).sort_by(&.first_slot)
+    nodes.select(&.serving?).sort_by!(&.first_slot)
   end
 
   def orphaned_masters(counts : Hash(NodeInfo, Int64))
     masters = [] of NodeInfo
     each_serving_masters_with_slaves do |master, slaves|
-      next if slaves.any?{|slave| counts[slave] >= 0}
+      next if slaves.any? { |slave| counts[slave] >= 0 }
       masters << master
     end
-    return masters
+    masters
   end
 
   # odd state: this slave belongs to another slave (What's this?)
   def orphaned_slaves
-    masters = serving_masters.to_set
-    slaves.reject{|s| find_node_by!(s.master).serving? rescue false }
+    serving_masters.to_set
+    slaves.reject { |s| find_node_by!(s.master).serving? rescue false }
   end
 
   # TODO: better algorithm
   def minimum_master_or_nil(counts)
-    oms = orphaned_masters(counts)
-    if oms.any?
-      return oms[0]
-    end
+    minimum_master = orphaned_masters(counts).first?
+    return minimum_master unless minimum_master.nil?
+
     c = 1000
     found = nil
     each_serving_masters_with_slaves do |m, slaves|
@@ -70,18 +70,18 @@ class Redis::Cluster::ClusterInfo
       end
     end
 
-    return found
+    found
   end
-  
-  def each_serving_masters_with_slaves
+
+  def each_serving_masters_with_slaves(&)
     deps = slave_deps
     serving_masters.each do |master|
-      slaves = deps.fetch(master) {[] of NodeInfo}
+      slaves = deps.fetch(master) { [] of NodeInfo }
       yield({master, slaves})
     end
   end
 
-  def each_nodes
+  def each_nodes(&)
     shown = Set(NodeInfo).new
 
     # first, process serving masters
@@ -129,7 +129,7 @@ class Redis::Cluster::ClusterInfo
   def master_addr(node) : String
     find_node_by!(node.master).addr.to_s rescue "(#{node.sha1_6})"
   end
-  
+
   private def build_slave_deps : Hash(NodeInfo, Array(NodeInfo))
     slaves = Hash(NodeInfo, Array(NodeInfo)).new
     nodes.each do |node|
@@ -147,12 +147,12 @@ class Redis::Cluster::ClusterInfo
     slaves.keys.each do |node|
       slaves.delete(node) if node.slave?
     end
-    
-    return slaves
+
+    slaves
   end
 
   private def build_slot2addr
-    Hash(Int32, Addr).new.tap {|hash|
+    Hash(Int32, Addr).new.tap { |hash|
       nodes.each do |node|
         next unless node.master? && node.slot?
         node.slot.each do |slot|
@@ -173,32 +173,33 @@ class Redis::Cluster::ClusterInfo
     else
       host = addr
     end
-    
-    found = nodes.select{|n|
-      (n.host.starts_with?(host)) && (port.nil? || n.port == port)
-    }
+
+    found = nodes.select do |n|
+      n.host.starts_with?(host) && (port.nil? || n.port == port)
+    end
+
     case found.size
     when 0
-      possible = nodes.map(&.addr).join(", ")
+      possible = nodes.join(", ", &.addr)
       raise NodeNotFound.new("node not found: `#{addr}`\n(possible: #{possible})")
     when 1
-      return found.first.not_nil!
+      found.first.not_nil!
     else
-      possible = nodes.map(&.addr).join(", ")
+      possible = nodes.join(", ", &.addr)
       raise NodeNotUniq.new("node not uniq: `#{addr}`\n(possible: #{possible})")
     end
   end
 
   def find_node_by_sha1!(sha1)
-    found = nodes.select{|n| n.sha1 =~ /\A#{sha1}/}
+    found = nodes.select &.sha1.=~(/\A#{sha1}/)
     case found.size
     when 0
-      possible = nodes.map(&.sha1_6).join(", ")
+      possible = nodes.join(", ", &.sha1_6)
       raise NodeNotFound.new("node not found: `#{sha1}`\n(possible: #{possible})")
     when 1
-      return found.first.not_nil!
+      found.first
     else
-      possible = found.map(&.sha1_6).join(", ")
+      possible = nodes.join(", ", &.sha1_6)
       raise NodeNotUniq.new("node not uniq: `#{sha1}`\n(possible: #{possible})")
     end
   end

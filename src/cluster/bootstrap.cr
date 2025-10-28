@@ -1,25 +1,27 @@
 require "uri"
+require "openssl"
 
 module Redis::Cluster
   record Bootstrap,
     host : String? = nil,
-    port : Int32?  = nil,
+    port : Int32? = nil,
     sock : String? = nil,
-    pass : String? = nil do
-
+    pass : String? = nil,
+    ssl : Bool = false,
+    ssl_context : OpenSSL::SSL::Context::Client? = nil do
     def host
       if @host && @host =~ /:/
         raise "invalid hostname: #{@host}"
       end
       @host || "127.0.0.1"
     end
-         
+
     def port
       @port || 6379
     end
-         
+
     def sock?
-      !! @sock
+      !!@sock
     end
 
     def pass? : String?
@@ -28,16 +30,46 @@ module Redis::Cluster
     end
 
     # aliases
-    def pass       ; pass? ; end
-    def password   ; pass  ; end
-    def unixsocket ; sock  ; end
-         
-    def copy(host : String? = nil, port : Int32? = nil, sock : String? = nil, pass : String? = nil)
-      Bootstrap.new(host: host||@host, port: port||@port, sock: sock||@sock, pass: pass||pass?)
+    def pass
+      pass?
+    end
+
+    def password
+      pass
+    end
+
+    def unixsocket
+      sock
+    end
+
+    def ssl?
+      @ssl
+    end
+
+    def ssl_context
+      @ssl_context ||= begin
+        context = OpenSSL::SSL::Context::Client.new
+        context.ciphers = "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH"
+        context.add_options(OpenSSL::SSL::Options::NO_SSL_V2 | OpenSSL::SSL::Options::NO_SSL_V3)
+        context.verify_mode = OpenSSL::SSL::VerifyMode::None
+        context
+      end
+    end
+
+    def copy(host : String? = nil, port : Int32? = nil, sock : String? = nil, pass : String? = nil, ssl : Bool? = nil, ssl_context : OpenSSL::SSL::Context::Client? = nil)
+      Bootstrap.new(
+        host: host || @host,
+        port: port || @port,
+        sock: sock || @sock,
+        pass: pass || pass?,
+        ssl: ssl.nil? ? @ssl : ssl,
+        ssl_context: ssl_context
+      )
     end
 
     def redis
-      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass)
+      ssl_ctx = @ssl ? ssl_context : nil
+      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx)
     rescue err : Redis::CannotConnectError
       if sock?
         raise Redis::CannotConnectError.new("file://#{@sock}")
@@ -51,44 +83,50 @@ module Redis::Cluster
       auth = "#{pass}@" if pass
       auth = "[FILTERED]@" if pass && secure
 
+      scheme = @ssl ? "rediss" : "redis"
+
       if sock?
-        "redis://%s%s" % [auth, sock]
+        "#{scheme}://%s%s" % [auth, sock]
       else
-        "redis://%s%s:%s" % [auth, host, port]
+        "#{scheme}://%s%s:%s" % [auth, host, port]
       end
     end
 
     def to_s(io : IO)
       io << to_s
     end
-    
+
     def self.zero
-      new(host: Addr::DEFAULT_HOST, port: Addr::DEFAULT_PORT, pass: nil)
+      new(host: Addr::DEFAULT_HOST, port: Addr::DEFAULT_PORT, pass: nil, ssl: false)
     end
 
     def self.parse(s : String)
       case s
-      when %r{\Aredis://}
+      when %r{\Arediss?://}
         # normalized
       when %r{\A([a-z0-9\.\+-]+):/}
         raise "unknown scheme for Bootstrap: `#{$1}`"
       else
         s = "redis://#{s}"
       end
-        
+
       uri = URI.parse(s)
+
       # `URI.parse("redis:///")` now builds `host` as `""` rather than `nil` (#6323 in crystal-0.29)
-      host = uri.host.to_s.empty? ? nil : uri.host.to_s
-      pass = uri.user.to_s.empty? ? nil : uri.user
-      path = uri.path.to_s.empty? ? nil : uri.path.to_s
+      host = uri.host.to_s.presence
+      pass = uri.user.to_s.presence
+      path = uri.path.to_s.presence
+      ssl = uri.scheme == "rediss"
 
       if path && host.nil? && uri.port.nil?
-        return new(sock: path, pass: pass)
+        return new(sock: path, pass: pass, ssl: ssl)
       end
+
       if uri.port && uri.port.not_nil! <= 0
         raise "invalid port for Bootstrap: `#{uri.port}`"
       end
-      zero.copy(host: host, port: uri.port, pass: pass)
+
+      zero.copy(host: host, port: uri.port, pass: pass, ssl: ssl)
     end
   end
 end
