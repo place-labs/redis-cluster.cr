@@ -1,4 +1,4 @@
-[![CI](https://github.com/place-labs/redis-cluster.cr/actions/workflows/ci.yml/badge.svg)](https://github.com/place-labs/redis-cluster.cr/actions/workflows/ci.yml)
+[![CI](https://github.com/maiha/redis-cluster.cr/actions/workflows/ci.yml/badge.svg)](https://github.com/maiha/redis-cluster.cr/actions/workflows/ci.yml)
 
 redis-cluster library for [Crystal](http://crystal-lang.org/).
 
@@ -23,7 +23,7 @@ Add this to your application's `shard.yml`:
 ```yaml
 dependencies:
   redis-cluster:
-    github: place-labs/redis-cluster.cr
+    github: maiha/redis-cluster.cr
     version: 0.8.5
 ```
 
