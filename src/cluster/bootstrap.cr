@@ -8,7 +8,8 @@ module Redis::Cluster
     sock : String? = nil,
     pass : String? = nil,
     ssl : Bool = false,
-    ssl_context : OpenSSL::SSL::Context::Client? = nil do
+    ssl_context : OpenSSL::SSL::Context::Client? = nil,
+    reconnect : Bool = true do
     def host
       if @host && @host =~ /:/
         raise "invalid hostname: #{@host}"
@@ -56,20 +57,21 @@ module Redis::Cluster
       end
     end
 
-    def copy(host : String? = nil, port : Int32? = nil, sock : String? = nil, pass : String? = nil, ssl : Bool? = nil, ssl_context : OpenSSL::SSL::Context::Client? = nil)
+    def copy(host : String? = nil, port : Int32? = nil, sock : String? = nil, pass : String? = nil, ssl : Bool? = nil, ssl_context : OpenSSL::SSL::Context::Client? = nil, reconnect : Bool? = nil)
       Bootstrap.new(
         host: host || @host,
         port: port || @port,
         sock: sock || @sock,
         pass: pass || pass?,
         ssl: ssl.nil? ? @ssl : ssl,
-        ssl_context: ssl_context
+        ssl_context: ssl_context,
+        reconnect: reconnect.nil? ? @reconnect : reconnect,
       )
     end
 
     def redis
       ssl_ctx = @ssl ? ssl_context : nil
-      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx)
+      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx, reconnect: @reconnect)
     rescue err : Redis::CannotConnectError
       if sock?
         raise Redis::CannotConnectError.new("file://#{@sock}")
@@ -100,7 +102,7 @@ module Redis::Cluster
       new(host: Addr::DEFAULT_HOST, port: Addr::DEFAULT_PORT, pass: nil, ssl: false)
     end
 
-    def self.parse(s : String)
+    def self.parse(s : String, reconnect : Bool = true)
       case s
       when %r{\Arediss?://}
         # normalized
@@ -126,7 +128,7 @@ module Redis::Cluster
         raise "invalid port for Bootstrap: `#{uri.port}`"
       end
 
-      zero.copy(host: host, port: uri.port, pass: pass, ssl: ssl)
+      zero.copy(host: host, port: uri.port, pass: pass, ssl: ssl, reconnect: reconnect)
     end
   end
 end

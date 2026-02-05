@@ -13,8 +13,8 @@ class ::Redis::Client
   delegate host, port, unixsocket, password, ssl?, ssl_context?, to: @bootstrap
   getter bootstrap
 
-  def self.boot(bootstrap : String)
-    new(::Redis::Cluster::Bootstrap.parse(bootstrap))
+  def self.boot(bootstrap : String, reconnect : Bool = true)
+    new(::Redis::Cluster::Bootstrap.parse(bootstrap, reconnect))
   end
 
   def initialize(@bootstrap : ::Redis::Cluster::Bootstrap)
