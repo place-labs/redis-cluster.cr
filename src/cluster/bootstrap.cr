@@ -71,7 +71,7 @@ module Redis::Cluster
 
     def redis
       ssl_ctx = @ssl ? ssl_context : nil
-      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx, reconnect: @reconnect)
+      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx, reconnect: @reconnect, command_timeout: 10.seconds, connect_timeout: 10.seconds)
     rescue err : Redis::CannotConnectError
       if sock?
         raise Redis::CannotConnectError.new("file://#{@sock}")
