@@ -9,7 +9,8 @@ module Redis::Cluster
     pass : String? = nil,
     ssl : Bool = false,
     ssl_context : OpenSSL::SSL::Context::Client? = nil,
-    reconnect : Bool = true do
+    reconnect : Bool = true,
+    command_timeout : Time::Span? = 10.seconds do
     def host
       if @host && @host =~ /:/
         raise "invalid hostname: #{@host}"
@@ -57,7 +58,7 @@ module Redis::Cluster
       end
     end
 
-    def copy(host : String? = nil, port : Int32? = nil, sock : String? = nil, pass : String? = nil, ssl : Bool? = nil, ssl_context : OpenSSL::SSL::Context::Client? = nil, reconnect : Bool? = nil)
+    def copy(host : String? = nil, port : Int32? = nil, sock : String? = nil, pass : String? = nil, ssl : Bool? = nil, ssl_context : OpenSSL::SSL::Context::Client? = nil, reconnect : Bool? = nil, command_timeout : Time::Span? = nil)
       Bootstrap.new(
         host: host || @host,
         port: port || @port,
@@ -66,12 +67,13 @@ module Redis::Cluster
         ssl: ssl.nil? ? @ssl : ssl,
         ssl_context: ssl_context,
         reconnect: reconnect.nil? ? @reconnect : reconnect,
+        command_timeout: command_timeout || @command_timeout,
       )
     end
 
     def redis
       ssl_ctx = @ssl ? ssl_context : nil
-      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx, reconnect: @reconnect, command_timeout: 10.seconds, connect_timeout: 10.seconds)
+      Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx, reconnect: @reconnect, command_timeout: @command_timeout, connect_timeout: 10.seconds)
     rescue err : Redis::CannotConnectError
       if sock?
         raise Redis::CannotConnectError.new("file://#{@sock}")
