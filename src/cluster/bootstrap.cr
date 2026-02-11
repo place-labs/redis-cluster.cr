@@ -104,7 +104,7 @@ module Redis::Cluster
       new(host: Addr::DEFAULT_HOST, port: Addr::DEFAULT_PORT, pass: nil, ssl: false)
     end
 
-    def self.parse(s : String, reconnect : Bool = true)
+    def self.parse(s : String, reconnect : Bool = true, command_timeout : Time::Span? = nil)
       case s
       when %r{\Arediss?://}
         # normalized
@@ -130,7 +130,7 @@ module Redis::Cluster
         raise "invalid port for Bootstrap: `#{uri.port}`"
       end
 
-      zero.copy(host: host, port: uri.port, pass: pass, ssl: ssl, reconnect: reconnect)
+      zero.copy(host: host, port: uri.port, pass: pass, ssl: ssl, reconnect: reconnect, command_timeout: command_timeout)
     end
   end
 end
