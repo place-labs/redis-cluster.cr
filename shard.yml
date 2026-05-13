@@ -1,5 +1,5 @@
 name: redis-cluster
-version: 0.8.11
+version: 0.8.12
 license: MIT
 authors:
   - maiha <maiha@wota.jp>

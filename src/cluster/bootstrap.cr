@@ -76,9 +76,9 @@ module Redis::Cluster
       Redis.new(host: host, port: port, unixsocket: @sock, password: @pass, ssl: @ssl, ssl_context: ssl_ctx, reconnect: @reconnect, command_timeout: @command_timeout, connect_timeout: 10.seconds)
     rescue err : Redis::CannotConnectError
       if sock?
-        raise Redis::CannotConnectError.new("file://#{@sock}")
+        raise Redis::CannotConnectError.new("file://#{@sock}: #{err.message}")
       else
-        raise err
+        raise Redis::CannotConnectError.new("#{host}:#{port}: #{err.message}")
       end
     end
 

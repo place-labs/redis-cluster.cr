@@ -23,10 +23,15 @@ module Redis::Cluster
         return redis
       else
         # Just raise it because it would be a connection problem like AUTH error.
+        redis.close rescue nil
         raise e
       end
     end
 
+    # The probe `redis` is only used to detect cluster support; the cluster
+    # client manages its own per-node connections. Close it explicitly so we
+    # don't rely on the finalizer to reclaim the socket.
+    redis.close rescue nil
     ::Redis::Cluster.new("#{host}:#{port}", password: password, ssl: ssl, ssl_context: ssl_context)
   end
 end
