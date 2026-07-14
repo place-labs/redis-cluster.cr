@@ -106,6 +106,17 @@ module Redis::Cluster::Commands
   proxy hscan, key, cursor, match = nil, count = nil
   proxy hsetnx, key, field, value
   proxy hvals, key
+  proxy hexpire, key, seconds, field, condition = nil
+  proxy hpexpire, key, milliseconds, field, condition = nil
+  proxy hexpireat, key, unix_time_seconds, field, condition = nil
+  proxy hpexpireat, key, unix_time_millis, field, condition = nil
+  proxy httl, key, field
+  proxy hpttl, key, field
+  proxy hexpiretime, key, field
+  proxy hpexpiretime, key, field
+  proxy hpersist, key, field
+  proxy hsetex, key, field, value, ex = nil, px = nil, exat = nil, pxat = nil, keepttl = false, fnx = false, fxx = false
+  proxy hgetex, key, field, ex = nil, px = nil, exat = nil, pxat = nil, persist = false
 
   # Sorted Sets
   proxy zadd, key, *scores_and_members
